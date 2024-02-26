@@ -1,5 +1,6 @@
 const http = require('http');
 const https = require('https');
+const cheerio = require('cheerio');
 
 const server = http.createServer((req, res) => {
     if (req.url === '/getTimeStories' && req.method === 'GET') {
@@ -15,19 +16,18 @@ const server = http.createServer((req, res) => {
             response.on('end', () => {
                 const extractedData = [];
 
-                // Emulating querySelector and innerHTML
-                const div = document.createElement('div');
-                div.innerHTML = data;
+                // Load HTML data into cheerio
+                const $ = cheerio.load(data);
 
-                // Selecting elements by tag name and class name
-                const latestStoriesItems = div.getElementsByClassName('latest-stories__item');
+                // Selecting elements by class name
+                const latestStoriesItems = $('.latest-stories__item');
 
-                for (const item of latestStoriesItems) {
-                    const a = item.querySelector('a');
-                    const href = a.getAttribute('href');
-                    const h3Content = a.querySelector('h3').textContent.trim();
+                latestStoriesItems.each((index, element) => {
+                    const a = $(element).find('a');
+                    const href = a.attr('href');
+                    const h3Content = a.find('h3').text().trim();
                     extractedData.push({ title: h3Content, link: href });
-                }
+                });
 
                 const jsonResponse = JSON.stringify(extractedData);
                 res.writeHead(200, { 'Content-Type': 'application/json' });

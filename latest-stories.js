@@ -1,6 +1,5 @@
 const http = require('http');
 const https = require('https');
-const cheerio = require('cheerio');
 
 const server = http.createServer((req, res) => {
     if (req.url === '/getTimeStories' && req.method === 'GET') {
@@ -16,18 +15,35 @@ const server = http.createServer((req, res) => {
             response.on('end', () => {
                 const extractedData = [];
 
-                // Load HTML data into cheerio
-                const $ = cheerio.load(data);
+                // Find latest stories items manually
+                let latestStoriesIndex = data.indexOf('<li class="latest-stories__item">');
+                while (latestStoriesIndex !== -1) {
+                    const endIndex = data.indexOf('</li>', latestStoriesIndex);
+                    const latestStoriesHtml = data.slice(latestStoriesIndex, endIndex);
 
-                // Selecting elements by class name
-                const latestStoriesItems = $('.latest-stories__item');
+                    // const startulIndex = latestStoriesHtml.indexOf('<ul>');
 
-                latestStoriesItems.each((index, element) => {
-                    const a = $(element).find('a');
-                    const href = a.attr('href');
-                    const h3Content = a.find('h3').text().trim();
-                    extractedData.push({ title: h3Content, link: href });
-                });
+                    // const endulIndex = latestStoriesHtml.indexOf('</ul>', startulIndex);
+                    // const latestStories2 = latestStoriesHtml.slice(startulIndex, endulIndex);
+
+                    // Extract links and titles manually
+                    let linkIndex = latestStoriesHtml.indexOf('<a href="');
+                    if (linkIndex !== -1) {
+                        const startHrefIndex = linkIndex + '<a href="'.length;
+                        const endHrefIndex = latestStoriesHtml.indexOf('"', startHrefIndex);
+                        const href = latestStoriesHtml.slice(startHrefIndex, endHrefIndex);
+
+                        const startTitleIndex = latestStoriesHtml.indexOf('<h3 class="latest-stories__item-headline">') 
+                                                                            + '<h3 class="latest-stories__item-headline">'.length;
+                        const endTitleIndex = latestStoriesHtml.indexOf('</h3>', startTitleIndex);
+                        const head = latestStoriesHtml.slice(startTitleIndex, endTitleIndex).trim();
+
+                        extractedData.push({ title: head, link: href });
+
+                        // linkIndex = data.indexOf('<a href="', endTitleIndex);
+                    }
+                    latestStoriesIndex = data.indexOf('<li class="latest-stories__item">', endIndex);
+                }
 
                 const jsonResponse = JSON.stringify(extractedData);
                 res.writeHead(200, { 'Content-Type': 'application/json' });
